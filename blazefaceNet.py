@@ -2,16 +2,6 @@
 import torch
 import torch.nn as nn
 
-#this class was defined to print everylayer
-class PrintLayer(nn.Module):
-    def __init__(self):
-        super(PrintLayer, self).__init__()
-    
-    def forward(self, x):
-        # Do your print / debug stuff here
-        print(x)      #print(x.shape)
-        return x
-
 class BlazeFaceNet(nn.Module):
     def __init__(self, size):
         super(BlazeFaceNet, self).__init__()
