@@ -2,6 +2,16 @@
 import torch
 import torch.nn as nn
 
+# this class was defined to print everylayer
+class PrintLayer(nn.Module):
+    def __init__(self):
+        super(PrintLayer, self).__init__()
+    
+    def forward(self, x):
+        # Do your print / debug stuff here
+        print(x)      #print(x.shape)
+        return x
+
 class BlazeFaceNet(nn.Module):
     def __init__(self, size):
         super(BlazeFaceNet, self).__init__()
@@ -10,7 +20,34 @@ class BlazeFaceNet(nn.Module):
         extractor = multibox(self.Net_backbone)
         self.loc  = nn.ModuleList(extractor[0])
         self.conf = nn.ModuleList(extractor[1])
+    
+    def forward(self, x):
+        extractor_sources = list()
+        loc = list()
+        conf = list()
+
+        for k in range(23):
+            x = self.Net_backbone[k](x)
+        extractor_sources.append(x)
+
+        for k in range(23, len(self.Net_backbone)):
+            x = self.Net_backbone[k](x)
+        extractor_sources.append(x)
+
+        for (x, l, c) in zip(extractor_sources, self.loc, self.conf):
+            loc.append(l(x).permute().contiguous())
+            conf.append(c(x).permute().contiguous())
         
+        loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
+        conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
+
+        output = (
+            loc.view(loc.size(0), -1, 4),
+            conf.view(conf.size(0), -1, self.num_classes),
+            self.priors
+        )
+
+        return output
     
 def backbone():
     layers = list()
@@ -34,6 +71,7 @@ def Singleblazeblock(in_channels, out_channels, kernel_size=5, padding=2, stride
     layers.append(nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, padding=padding, stride=stride, groups=in_channels))
     layers.append(nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, padding=padding, stride=1))
     layers.append(nn.ReLU(inplace=True))
+    # layers.append(nn.MaxPool2d(kernel_size=kernel_size, padding=padding, stride=stride))
     return layers
 
 def multibox(backbone, cfg=[2,6]):
@@ -46,4 +84,13 @@ def multibox(backbone, cfg=[2,6]):
         conf_layers += [nn.Conv2d(backbone[j-1].out_channels, cfg[i]*2, kernel_size=3, padding=1)]
     return (loc_layers, conf_layers)
 
+class SingleblazeblocK(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=5, padding=2, stride=1):
+        super(SingleblazeblocK, self).__init__()
+        self.DWconv1 = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, padding=padding, stride=stride, groups=in_channels)
+        self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, padding=padding, stride=1)
+        self.MaxPool = nn.MaxPool2d(kernel_size=kernel_size, padding=padding, stride=stride)
+
+
 blazefaceNet = BlazeFaceNet(128)
+print(len(blazefaceNet.Net_backbone))
