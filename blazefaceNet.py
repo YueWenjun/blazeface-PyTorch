@@ -35,16 +35,16 @@ class BlazeFaceNet(nn.Module):
         extractor_sources.append(x)
 
         for (x, l, c) in zip(extractor_sources, self.loc, self.conf):
-            loc.append(l(x).permute().contiguous())
-            conf.append(c(x).permute().contiguous())
+            loc.append(l(x).permute(0, 2, 3, 1).contiguous())
+            conf.append(c(x).permute(0, 2, 3, 1).contiguous())
         
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
 
         output = (
             loc.view(loc.size(0), -1, 4),
-            conf.view(conf.size(0), -1, self.num_classes),
-            self.priors
+            conf.view(conf.size(0), -1, 2),
+            # self.priorsbox
         )
 
         return output
