@@ -91,6 +91,6 @@ class SingleblazeblocK(nn.Module):
         self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, padding=padding, stride=1)
         self.MaxPool = nn.MaxPool2d(kernel_size=kernel_size, padding=padding, stride=stride)
 
-
-blazefaceNet = BlazeFaceNet(128)
-print(len(blazefaceNet.Net_backbone))
+if __name__ == "__main__":
+    blazefaceNet = BlazeFaceNet(128)
+    print(len(blazefaceNet.Net_backbone))

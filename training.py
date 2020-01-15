@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 import time
 from torch.autograd import Variable
+from multiboxloss import MultiBoxLoss
 
 # from data import *
 # from utils.augmentations import BlazefaceAugmentation
@@ -52,7 +53,7 @@ def train():
 
     optimizer = optim.SGD(myBlazefaceNet.parameters(), lr=0.001, momentum=0.9)
 
-    #criterion = MultiBoxLoss()
+    criterion = MultiBoxLoss()
 
     myBlazefaceNet.train()
 
@@ -78,6 +79,13 @@ def train():
         # targets = [Variable(ann, volatile=True) for ann in targets]
         t0 = time.time()
         output = myBlazefaceNet(image.float())
+        # print("output[0](loc): ",output[0].size())
+        # print("output[1](conf): ",output[1].size())
+        optimizer.zero_grad()
+        loss_l, loss_c = criterion(out, targets)
+        loss = loss_c + loss_l
+        loss.backward()
+        optimizer.step()
         t1 = time.time()
         print("timer: %.4f sec." %(t1-t0))
 
