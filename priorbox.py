@@ -61,6 +61,7 @@ class Priorbox(object):
         
         output = torch.Tensor(mean).view(-1, 4)
         output.clamp_(max=1, min=0)
+        print("priorbox的dtype:",output.dtype)
         return output
 
 if __name__ == "__main__":

@@ -59,11 +59,11 @@ class Rescale(object):
         image, faces = sample["image"], sample["faces"]
         h, w = image.shape[:2]
         img = transform.resize(image, (self.output_size, self.output_size))
-        for face in faces:
-            face["bbox"][0] = int(face["bbox"][0]*self.output_size/w)
-            face["bbox"][1] = int(face["bbox"][1]*self.output_size/h)
-            face["bbox"][2] = int(face["bbox"][2]*self.output_size/w)
-            face["bbox"][3] = int(face["bbox"][3]*self.output_size/h)
+        for i,face in enumerate(faces):
+            face[0] = face[0]/w
+            face[1] = face[1]/h
+            face[2] = face[2]/w
+            face[3] = face[3]/h
         return {"image": img,
                 "faces": faces}
 
@@ -77,23 +77,23 @@ class ToTensor(object):
         # torch image: C X H X W
         image = image.transpose((2, 0, 1))
         return {"image": torch.from_numpy(image),
-                "faces": faces}
+                "faces": torch.from_numpy(faces)}
     
 def parse_rec(xml_filename):
     """ Parse my label file in xml format """
     tree = ET.parse(xml_filename)
     objects = []
     for obj in tree.findall("object"):
-        obj_struct = {}
         bbox = obj.find('bndbox')
-        obj_struct['bbox'] = [
-            int(bbox.find('xmin').text) - 1,
-            int(bbox.find('ymin').text) - 1,
-            int(bbox.find('xmax').text) - 1,
-            int(bbox.find('ymax').text) - 1,
+        obj_struct = [
+            np.float32(bbox.find('xmin').text),
+            np.float32(bbox.find('ymin').text),
+            np.float32(bbox.find('xmax').text),
+            np.float32(bbox.find('ymax').text),
         ]
         objects.append(obj_struct)
-
+        
+    objects = np.array(objects)
     return objects
 
 def show_facesdetected(image, faces):
@@ -138,4 +138,4 @@ if __name__ == "__main__":
     for i_batch, sample_batched in enumerate(faceDataLoader):
         print("*****************************************")
         print(i_batch, sample_batched["image"].size(),sample_batched["faces"])
-        show_facesdetected_batch(sample_batched)
+        #show_facesdetected_batch(sample_batched)

@@ -8,6 +8,7 @@ import torch.optim as optim
 import time
 from torch.autograd import Variable
 from multiboxloss import MultiBoxLoss
+from priorbox import Priorbox
 
 # from data import *
 # from utils.augmentations import BlazefaceAugmentation
@@ -41,6 +42,8 @@ def train():
     print("myfaceDataset: ",str(myfaceDataset))
 
     myBlazefaceNet = BlazeFaceNet(128)
+    priorbox = Priorbox()
+    prior_boxes = priorbox.produce_priorboxes()# it should be torch.Size([896, 4])
 
     if args.resume:
         print('Resuming training, loading weights from{}'.format(args.resume))
@@ -53,7 +56,7 @@ def train():
 
     optimizer = optim.SGD(myBlazefaceNet.parameters(), lr=0.001, momentum=0.9)
 
-    criterion = MultiBoxLoss()
+    criterion = MultiBoxLoss(overlap_thresh=0.5, prior_for_matching=True, bkg_label=0, neg_mining=3, neg_pos=0.5, neg_overlap=False, encode_target=True)
 
     myBlazefaceNet.train()
 
@@ -73,16 +76,20 @@ def train():
     for i_batch, sample_batched in enumerate(faceDataLoader):
         image = sample_batched["image"]
         image = Variable(image)
-        print(type(image))
-        print(image.size())
+        print("input image type: ",type(image))
+        print("input image size: ",image.size())
+
         targets = sample_batched["faces"]
+        print("targets.dtype: ",targets.dtype)
+        print("targets.size: ",targets.size())
+
         # targets = [Variable(ann, volatile=True) for ann in targets]
         t0 = time.time()
         output = myBlazefaceNet(image.float())
-        # print("output[0](loc): ",output[0].size())
-        # print("output[1](conf): ",output[1].size())
+        print("output[0](loc)size: ",output[0].size(),"output[0](dtype)",output[0].dtype)
+        print("output[1](conf)size: ",output[1].size(),"output[0](dtype)",output[0].dtype)
         optimizer.zero_grad()
-        loss_l, loss_c = criterion(out, targets)
+        loss_l, loss_c = criterion(output, prior_boxes, targets)
         loss = loss_c + loss_l
         loss.backward()
         optimizer.step()
