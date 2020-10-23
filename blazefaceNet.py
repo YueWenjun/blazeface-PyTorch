@@ -68,8 +68,8 @@ def backbone():
 
 def Singleblazeblock(in_channels, out_channels, kernel_size=5, padding=2, stride=1):
     layers = list()
-    layers.append(nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, padding=padding, stride=stride, groups=in_channels))
-    layers.append(nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, padding=padding, stride=1))
+    layers.append(nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, padding=padding, stride=stride, groups=in_channels))#groups=in_channels是deepwise的关键
+    layers.append(nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, padding=0, stride=1))#1*1的pointwise
     layers.append(nn.ReLU(inplace=True))
     # layers.append(nn.MaxPool2d(kernel_size=kernel_size, padding=padding, stride=stride))
     return layers
@@ -81,15 +81,15 @@ def multibox(backbone, cfg=[2,6]):
     # print(len(backbone))
     for i, j in enumerate(extractor_layerth):
         loc_layers += [nn.Conv2d(backbone[j-1].out_channels, cfg[i] * 4, kernel_size=3, padding=1)]
-        conf_layers += [nn.Conv2d(backbone[j-1].out_channels, cfg[i]*2, kernel_size=3, padding=1)]
+        conf_layers += [nn.Conv2d(backbone[j-1].out_channels, cfg[i] * 2, kernel_size=3, padding=1)]
     return (loc_layers, conf_layers)
 
 class SingleblazeblocK(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=5, padding=2, stride=1):
         super(SingleblazeblocK, self).__init__()
         self.DWconv1 = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, padding=padding, stride=stride, groups=in_channels)
-        self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, padding=padding, stride=1)
-        self.MaxPool = nn.MaxPool2d(kernel_size=kernel_size, padding=padding, stride=stride)
+        self.conv2 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, padding=0, stride=1)
+        # self.MaxPool = nn.MaxPool2d(kernel_size=kernel_size, padding=padding, stride=stride)
 
 if __name__ == "__main__":
     blazefaceNet = BlazeFaceNet(128)

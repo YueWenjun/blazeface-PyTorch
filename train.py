@@ -41,60 +41,62 @@ def train():
     print(len(myfaceDataset))
     print("myfaceDataset: ",str(myfaceDataset))
 
-    myBlazefaceNet = BlazeFaceNet(128)
+    blazeface_net = BlazeFaceNet(128)
     priorbox = Priorbox()
     prior_boxes = priorbox.produce_priorboxes()# it should be torch.Size([896, 4])
 
     if args.resume:
         print('Resuming training, loading weights from{}'.format(args.resume))
-        myBlazefaceNet.load_weights(args.resume)
+        blazeface_net.load_weights(args.resume)
     else:
         print('Initializing weights...')
-        myBlazefaceNet.Net_backbone.apply(weights_init)
-        myBlazefaceNet.loc.apply(weights_init)
-        myBlazefaceNet.conf.apply(weights_init)
+        blazeface_net.Net_backbone.apply(weights_init)
+        blazeface_net.loc.apply(weights_init)
+        blazeface_net.conf.apply(weights_init)
 
-    optimizer = optim.SGD(myBlazefaceNet.parameters(), lr=0.001, momentum=0.9)
+    optimizer = optim.SGD(blazeface_net.parameters(), lr=0.001, momentum=0.9)
 
     criterion = MultiBoxLoss(overlap_thresh=0.5, prior_for_matching=True, bkg_label=0, neg_mining=3, neg_pos=0.5, neg_overlap=False, encode_target=True)
 
-    myBlazefaceNet.train()
+    blazeface_net.train()
 
-    print(myBlazefaceNet)
+    print(blazeface_net)
 
     #Loss counters
-    loc_loss = 0
-    conf_loss = 0
-    epoch = 0
-    # batch_size = 16
+    loss_l = 0
+    loss_c = 0
+    batch_size = 16
+    epoch_num = 100 #defined by youself
     print("Loading the dataset...")
 
-    # epoch_size = len(myfaceDataset)//batch_size
+    batch_num = len(myfaceDataset)//batch_size
+    faceDataLoader = DataLoader(myfaceDataset, batch_size = batch_size, num_workers = 0, shuffle = True)# define num_workers by yourself
 
-    faceDataLoader = DataLoader(myfaceDataset, batch_size = 1, num_workers = 0, shuffle = True)
+    for epoch in range(epoch_num):
+        # print("epoch: {}/{}".format(epoch, epoch_num))
+        
+        for i, batch_data in enumerate(faceDataLoader):
+            print("epoch: {}/{} batch: {}/{}".format(epoch, epoch_num, i, batch_num))
+            image = batch_data["image"]#我不知道这个是不是要有一个长长的list,这里本来有batch_size张图片的,这个地方要继续改正
+            image = Variable(image)
+            print("input image type: ", type(image))
+            print("input image size: ", image.size())
 
-    for i_batch, sample_batched in enumerate(faceDataLoader):
-        image = sample_batched["image"]
-        image = Variable(image)
-        print("input image type: ",type(image))
-        print("input image size: ",image.size())
+            targets =batch_data["faces"]
+            print("targets.dtype: ", targets.dtype)
+            print("targets.size: ", targets.size())
 
-        targets = sample_batched["faces"]
-        print("targets.dtype: ",targets.dtype)
-        print("targets.size: ",targets.size())
-
-        # targets = [Variable(ann, volatile=True) for ann in targets]
-        t0 = time.time()
-        output = myBlazefaceNet(image.float())
-        print("output[0](loc)size: ",output[0].size(),"output[0](dtype)",output[0].dtype)
-        print("output[1](conf)size: ",output[1].size(),"output[0](dtype)",output[0].dtype)
-        optimizer.zero_grad()
-        loss_l, loss_c = criterion(output, prior_boxes, targets)
-        loss = loss_c + loss_l
-        loss.backward()
-        optimizer.step()
-        t1 = time.time()
-        print("timer: %.4f sec." %(t1-t0))
+            t0 = time.time()
+            output = blazeface_net(image.float())
+            print("output[0](loc)size: ",output[0].size(),"output[0](dtype)",output[0].dtype)
+            print("output[1](conf)size: ",output[1].size(),"output[0](dtype)",output[0].dtype)
+            optimizer.zero_grad()
+            loss_l, loss_c = criterion(output, prior_boxes, targets)
+            loss = loss_c + loss_l
+            loss.backward()
+            optimizer.step()
+            t1 = time.time()
+            print("timer: %.4f sec." %(t1-t0))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = "blazeface-PyTorch")
